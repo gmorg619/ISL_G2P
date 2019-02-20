@@ -9,7 +9,7 @@ import clean_data
 
 # ***********Function for printing a FST in .dot format**************
 DEBUG = False
-def print_FST (f):
+def print_FST(f):
    fst = "digraph G { rankdir = LR "
    statelist = list(f.states.keys())
 
@@ -80,7 +80,7 @@ class PTT:
 
    def buildPTT(self,data):
       states = {'':set()}
-      transitions = {('',''):set()}
+      transitions = {'':set()}
 
       for iopair in data:
 
@@ -109,14 +109,14 @@ class PTT:
 
    def get_trans(self,q,a):
       for t in self.transitions[q]:
-         print "{}: This is my transisition thoughghg".format(t)
+         if (DEBUG): print "{}: This is my transisition thoughghg".format(t)
          if t[0] == a:
             return (t[1],t[2])
       return (None,None)
 
    def transduce(self,s):
       output = ''
-      state = ('','')
+      state = ''
       for c in s:
          out,state = self.get_trans(state,c)
          output+=str(out)
@@ -131,25 +131,14 @@ class PTT:
    # recursive function, initially called with the initial state and the empty string (follows algorithm in de la Higuera (2010))
    # Note: this function doesn't seem to work properly when there is only one outgoing transition from the start state. Not sure why.
    def onward(self,q,u):
-
       for a in self.Sigma:
          out,dest = self.get_trans(q,a)
          #print tuple(out), tuple(dest)
          if out != None:
             forward = self.onward(dest,a)
             self.transitions[q].remove((a,out,dest))
-            #print "{}  out and {}: forward baby".format(out, (forward[1]))
             #print type(out), out
-            if type(out) == tuple:
-                if type(forward[1]) == tuple:
-                    self.transitions[q].add((a,out+forward[1],dest))
-                else:
-                    self.transitions[q].add((a,out+tuple(forward[1]),dest))
-            else:
-                if type(forward[1]) == tuple:
-                    self.transitions[q].add((a,tuple(out)+forward[1],dest))
-                else:
-                    self.transitions[q].add((a,tuple(out)+tuple(forward[1]),dest))
+            self.transitions[q].add((a,out+forward[1],dest))
 
       outgoing_outputs = set([trans[1] for trans in self.transitions[q]])
       f = lcp(outgoing_outputs)
@@ -175,7 +164,7 @@ class PTT:
              origin = self.states[q].pop()
              for t in self.transitions[origin]:
                 if t[2] == q:
-                   newstatelabel = (q[0],tuple(origin)+tuple(t[1]))
+                   newstatelabel = (q[0],origin+t[1])
                    if newstatelabel != q:
                       self.transitions[origin].remove(t)
                       self.transitions[origin].add((t[0],t[1],newstatelabel))
@@ -418,7 +407,6 @@ def ISLFLAv2(T):
 
 
 
-
 # **************Test case 1: LD sibilant harmony, progressive, asymmetric (2-TSL)**************
 
 # Sad Sas Test
@@ -435,32 +423,38 @@ def ISLFLAv2(T):
 # ("CVV", "CVV"), ("CCC", "CCC"), ("VVV", "VVV"), ("NNN", "NNN")])
 
 # G2P Test
-phonetic_dict = clean_data.load_clean_phonetic_dictionary()
+alpha = ['c','t','a']
+size = 3
+word_min = 2
+word_max = 10
+phonetic_dict = clean_data.load_clean_phonetic_dictionary(alpha, word_min, word_max)
+data = set([(key, phonetic_dict[key])for key in phonetic_dict])
 #for key in phonetic_dict:
    #print(key, phonetic_dict[key])
 #data = set([('c','K'),('t','T'),('a','A'),('cc','K K'),('tt','T T'),('aa','AH AH'),('ca','K AH'),('ac','AH K'),('ta','T U'),('at','AH T'),('ct','K T'),('tc','T K')])
-#data = set([('c','K'),('t','T'),('a','A'),('cc','KK'),('tt','TT'),('aa','AA'),('ca','KA'),('ac','AK'),('ta','TU'),('at','AT'),('ct','KT'),('tc','TK')])
+data = set([('c','K'),('t','T'),('a','A'),('tt','TT'),('aa','AA'),('ca','KA'),('ac','AK'),('ta','TU'),('at','AT'),('ct','KT'),('tc','TK')])
 
-data = set([('c',('K')), ('t',('T')),('a',('A')),('cc',('K','K')),('tt',('T','T')),('aa',('AH','AH')),('ca',('K','AH')),('ac',('AH','K')),('ta',('T','U')),('at',('AH','T')),('ct',('K','T')),('tc',('T','K'))])
-k=2
+#data = set([('c',('K')), ('t',('T')),('a',('A')),('cc',('K','K')),('tt',('T','T')),('aa',('AH','AH')),('ca',('K','AH')),('ac',('AH','K')),('ta',('T','U')),('at',('AH','T')),('ct',('K','T')),('tc',('T','K'))])
+k = 2
 
 test1 = PTT(data,set(['c','t','a']))
-#test1 = PTT(data,set(['s','S','a']))
-#test1 = PTT(data,set(['V','N','C']))
+# test1 = PTT(data,set(['s','S','a']))
+# test1 = PTT(data,set(['V','N','C']))
+target = open('data/ptt.dot','a')
+target.write(print_FST(test1))
 
 test1.onward('','')
-print test1
-test1.relabel()
-print test1
+
+target = open('data/onward.dot','a')
+target.write(print_FST(test1))
+
+
 ISLFLAv2(test1)
-print test1
 
-#print "Transducing : CNVVCVN"
-print test1.transduce("c")
-#print "Hurray!"
+target = open('data/isfla.dot','a')
+target.write(print_FST(test1))
 
-
-
+print test1.transduce("catcatatacacccaattt")
 
 
 
