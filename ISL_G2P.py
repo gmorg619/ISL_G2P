@@ -415,12 +415,17 @@ def ISLFLAv2(T):
 # ISL Sas Test
 #data = set([('a','a'),('s','s'),('S','S'),('sa', 'sa'), ('sS', 'ss'), ('ss', 'ss'), ('as', 'as'), ('aa', 'aa'), ('aS', 'aS'), ('Sa', 'Sa'), ('Ss', 'SS'), ('SS', 'SS'), ('sas', 'sas'), ('saa', 'saa'), ('saS', 'sas'), ('sSs', 'sss'), ('sSS', 'sss'), ('sSa', 'ssa'), ('sss', 'sss'), ('ssS', 'sss'), ('ssa', 'ssa'), ('ass', 'ass'), ('asS', 'ass'), ('asa', 'asa'), ('aas', 'aas'), ('aaS', 'aaS'), ('aaa', 'aaa'), ('aSs', 'aSS'), ('aSS', 'aSS'), ('aSa', 'aSa'), ('Sas', 'SaS'), ('SaS', 'SaS'), ('Saa', 'Saa'), ('Sss', 'SSS'), ('SsS', 'SSS'), ('Ssa', 'SSa'), ('SSs', 'SSS'), ('SSS', 'SSS'), ('SSa', 'SSa')])
 
+# alpha = ['s','S','a']
+
 # Nasal Vowel Test
+
 # data = set([("VNC", "VNC"), ("CVN", "CVN"), ("CNC", "CNC"), ("NNC", "NNC"), ("NNV", "NNN"), ("VNN", "VNN"), ("NVN", "NNN"), ("VCN", "VCN"),
 # ("CCV", "CCV"), ("CN", "CN"), ("VVC", "VVC"), ("NVC", "NNC"), ("CC", "CC"), ("NV", "NN"), ("NC", "NC"), ("VNV", "VNN"), ("VCV", "VCV"),
 # ("CCN", "CCN"), ("N", "N"), ("CNV", "CNN"), ("NN", "NN"), ("C", "C"), ("NCC", "NCC"), ("CV", "CV"), ("CNN", "CNN"), ("VN", "VN"),
 # ("VVN", "VVN"), ("VC", "VC"), ("NCV", "NCV"), ("CVC", "CVC"), ("VV", "VV"), ("VCC", "VCC"), ("NCN", "NCN"), ("V", "V"), ("NVV", "NNN"),
 # ("CVV", "CVV"), ("CCC", "CCC"), ("VVV", "VVV"), ("NNN", "NNN")])
+
+# alpha = ['C','N','C']
 
 # G2P Test
 alpha = ['c','t','a']
@@ -428,18 +433,15 @@ size = 3
 word_min = 2
 word_max = 10
 phonetic_dict = clean_data.load_clean_phonetic_dictionary(alpha, word_min, word_max)
-data = set([(key, phonetic_dict[key])for key in phonetic_dict])
-#for key in phonetic_dict:
-   #print(key, phonetic_dict[key])
-#data = set([('c','K'),('t','T'),('a','A'),('cc','K K'),('tt','T T'),('aa','AH AH'),('ca','K AH'),('ac','AH K'),('ta','T U'),('at','AH T'),('ct','K T'),('tc','T K')])
+CMU_data = set([(key, phonetic_dict[key])for key in phonetic_dict])
+
+
 data = set([('c','K'),('t','T'),('a','A'),('tt','TT'),('aa','AA'),('ca','KA'),('ac','AK'),('ta','TU'),('at','AT'),('ct','KT'),('tc','TK')])
 
-#data = set([('c',('K')), ('t',('T')),('a',('A')),('cc',('K','K')),('tt',('T','T')),('aa',('AH','AH')),('ca',('K','AH')),('ac',('AH','K')),('ta',('T','U')),('at',('AH','T')),('ct',('K','T')),('tc',('T','K'))])
 k = 2
 
-test1 = PTT(data,set(['c','t','a']))
-# test1 = PTT(data,set(['s','S','a']))
-# test1 = PTT(data,set(['V','N','C']))
+test1 = PTT(data,set(alpha))
+
 target = open('data/ptt.dot','a')
 target.write(print_FST(test1))
 
@@ -448,20 +450,12 @@ test1.onward('','')
 target = open('data/onward.dot','a')
 target.write(print_FST(test1))
 
-
 ISLFLAv2(test1)
 
 target = open('data/isfla.dot','a')
 target.write(print_FST(test1))
 
 print test1.transduce("catcatatacacccaattt")
-
-
-
-
-
-
-
 
 
 """
