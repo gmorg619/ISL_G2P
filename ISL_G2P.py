@@ -9,7 +9,7 @@ import os
 import time
 
 # ***********Function for printing a FST in .dot format**************
-DEBUG = False
+
 def print_FST(f):
     fst = "digraph G { rankdir = LR "
     statelist = list(f.states.keys())
@@ -108,20 +108,53 @@ class PTT:
         return states,transitions
 
 
+    # This is used for creation of onward FST
     def get_trans(self,q,a):
         for t in self.transitions[q]:
 
             if t[0] == a:
                 return (t[1],t[2])
-        return (None,None)
+        return (None, None)
+
+    # variation of get_trans used for "special" g2p transducing
+    def get_g2p_trans(self,q,a):
+        #print self.transitions['']
+        #print "At state {}, read character {}".format(q, a)
+        if q in self.transitions.keys():
+            for t in self.transitions[q]:
+                if t[0] == a:
+                    #   print (t[1],t[2])
+                    #print "Yay! Outputing {} and moving to state {}".format(t[1],t[2])
+                    return (t[1],t[2])
+        if q == '':
+            #print "this is happening"
+            for t in self.transitions[a]:
+                if t[0] == '#':
+                    return (t[1], a)
+            #print "This is happening"
+            #return (a, a)
+        # This shouldn't be infinite recursion ever because base case q = ""
+        # Due to restriction that data set must have one data point starting with each letter
+        # in alphabet, should always be a transition from "" on variable a
+        # out1 = self.get_trans(q[0], "#")[0]
+        # print out1
+        # out2 = [0]
+        # state = self.get_g2p_trans(q[1:], a)[1]
+        # print(out1+out2, state)
+        #print "No transition {} from state {}, jump to state {}".format(a, q, q[1:])
+        return self.get_g2p_trans(q[1:], a)
 
     def transduce(self,s):
         output = []
         state = ''
         for c in s+"#":
-            out,state = self.get_trans(state,c)
+            out,state = self.get_g2p_trans(state,c)
+            while out == None:
+                #prev_out = self.tranduce()
+                out, state = self.get_g2p_trans(state[1:], c)
             if out != '':
                 output.append(out)
+            #print "Current output so far: {}".format(output)
         return output
 
     def transduce_set(self,S):
@@ -139,7 +172,6 @@ class PTT:
             if out != None:
                 forward = self.onward(dest,a)
                 self.transitions[q].remove((a,out,dest))
-                #print type(out), out
                 self.transitions[q].add((a,out+forward[1],dest))
 
         outgoing_outputs = set([trans[1] for trans in self.transitions[q]])
@@ -186,7 +218,7 @@ class PTT:
 # pushback function used in inner loop of the learner; removes the suffix v from the output of the incoming transition e and adds it as a prefix to all outputs
 # of all outgoing transitions of the destination state of e
 def pushback (T,v,e):
-    #print 'pushback called with',v,e
+
     if v == '':
         return
     # Remove the edge e
@@ -262,7 +294,6 @@ def create_new_output(output1, output2):
 
 # merges two states q1 and q2 in T
 def merge (T,q1,q2):
-
     if len(q1) > len(q2):
          q1, q2 = q2, q1
 
@@ -319,7 +350,6 @@ def merge2 (T,e1,e2):
                 if out[2] == e2[3]:
                     to_remove.add(out)
                     # Create a new transition that goes to q1' instead
-                    #print 'adding 1',(incoming,out[0],out[1],e1[3])
                     to_add.add((out[0],out[1],e1[3]))
 
             T.transitions[incoming].difference_update(to_remove)
@@ -331,16 +361,12 @@ def merge2 (T,e1,e2):
                 if out[2] == e2[3] and out[1] != e2[2]:
                     to_remove.add(out)
                     # Create a new transition that goes to q1' instead
-                    #print 'adding 1',(incoming,out[0],out[1],e1[3])
                     to_add.add((out[0],out[1],e1[3]))
 
                 T.transitions[incoming].difference_update(to_remove)
                 T.transitions[incoming].update(to_add)
                 to_remove = set()
                 to_add = set()
-
-
-
 
     # States with an incoming transition to q2' now get added to q1''s set of states
     T.states[e1[3]].update(T.states[e2[3]])
@@ -359,16 +385,6 @@ def merge2 (T,e1,e2):
         del T.states[e2[3]]
         del T.transitions[e2[3]]
 
-    # if e2[3] == 'get':
-    #      target = open("graphs/get_after.dot",'w')
-    #      target.write(print_FST(T))
-
-  # print T.transitions[e1[0]]
-    # if type(e1[2]) == tuple:
-    #      print "{} {}".format(e1, e2)
-    #      print  T.transitions[e1[0]]
-    #      print T
-
 
 #*********************************** Modified ISL state-merging learner *************************************
 
@@ -381,21 +397,57 @@ def ISLFLAv2(T,k):
     # Go through the states in order (length-lexicographic). Since the actual state set is changing throughout
     # we need a list copy of the state set before any merging takes place (python complains otherwise)
     states = list(T.states)
-    q = nextq(states,T.states,first(T.states))
-    while q < last(T.states):
+    #print states
+    q = nextq(states,T.states,first(states))
+    while q < last(states):
 
         # Merge each state with its k-1 suffix
         # Something was going wrong with final states so I added the second condition here
 
-        if q != suffix(q,k-1) and q[-1] != '#':
+        if q != suffix(q,k-1) and q[-1] != '#':# and len(q) > k-1:
 
-            suf = k-1
-            while suf > 0:
-                if suffix(q,suf) in T.states:
-                    merge(T,suffix(q,suf),q)
-                    break
-                else:
-                    suf-=1
+            # suf = k-1
+            # while suf > 0:
+            #     if suffix(q,suf) in T.states:
+            #         merge(T,suffix(q,suf),q)
+            #         break
+            #     else:
+            #         suf-=1
+
+            # check to see of k-1 suffix of q is a state
+            if suffix(q,k-1) in T.states:
+                #print "merging {}".format(q)
+                merge(T,suffix(q,k-1),q)
+            else:
+                # EXAMPLE: if we have k = 3 and we want to merge state CATT but there is no states
+                # TT, we create state TT. If state T exits then we add T as a incoming state to state TT
+                # and copy transitions from CAT -> CATT to T -> TT
+                #create state for k-1 suffix of q
+                T.states[suffix(q,k-1)] = set()
+                T.transitions[suffix(q,k-1)] = set()
+                # preffix of our new state
+                pref_state = suffix(q,k-1)[:-1]
+                #print pref_state, suffix(q,k-1), q, q[:-1]
+                if pref_state in T.states:
+                    # copy over transitions from previous state to q
+                    # to preffix of suffix(q,k-1)
+                    for state in T.states[q]:
+                        for trans in T.transitions[state]:
+                            if trans[2] == q:
+                                T.transitions[pref_state].add((trans[0], trans[1], suffix(q,k-1)))
+                    T.states[suffix(q,k-1)].add(pref_state)
+
+                # for state in T.states:
+                #     if suffix(state, k-2) == pref_state:
+                #         T.states[suffix(q,k-1)].add(state)
+                #         for trans in T.transitions[state]:
+                #             if trans[2][-1] == q[-1]:
+                #                 T.transitions[state].add((trans[0], trans[1], suffix(q,k-1)))
+
+                print suffix(q,k-1),q
+                merge(T,suffix(q,k-1),q)
+
+
 
             # Determine whether that merge created non-determinism (i.e., the FST is no longer subsequential)
             ssqtest = subseq(T)
@@ -409,12 +461,10 @@ def ISLFLAv2(T,k):
                 t = ssqtest[1][3]
                 v = ssqtest[0][2]
                 w = ssqtest[1][2]
-                #print s, t, v, w
 
                 # testing whether the non-determinism can be resolved with pushback. Previously, the algorithm would halt
                 # at this point if the answer is no. Now we call merge2 instead, to resolve it by creating semi-determinism
                 if (v != w ) or (s<q and not v in get_prefixes(w)):
-                    #print  ssqtest[0],ssqtest[1]
                     merge2(T,ssqtest[0],ssqtest[1])
                     break
                 else:
@@ -422,16 +472,13 @@ def ISLFLAv2(T,k):
                     u = lcp(set([v,w]))
                     pushback(T,v[len(u):],ssqtest[0])
                     pushback(T,w[len(u):],ssqtest[1])
-                    if (DEBUG): print "inner loop {} {}".format(ssqtest[0],ssqtest[1])
                     merge(T,s,t)
 
+                # print s, t
+                # if len(s) > len(s):
+                #      s, t = t, s
+                # print s, t
                 # check whether new merge has created new non-determinism
                 ssqtest = subseq(T)
-
-            #print("what up")
-            #target = open("graphs/isfla{}.dot".format(str(q)),'w')
-            #target.write(print_FST(T))
-            #time.sleep(1)
-            #os.system('dot -Tpng graphs/isfla{}.dot -o graphs/isfla{}.png'.format(str(q),str(q)))
 
         q = nextq(states,T.states,q)

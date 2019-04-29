@@ -71,7 +71,7 @@ def should_skip(word,alpha, min, max):
 # Function takes a set of excepted characters in alphabet: alpha
 # integer, size which is the number of words loading into phonetic dictionary
 # integers min and max which are the min and max word length to be loaded into dictionary
-def load_clean_phonetic_dictionary(alpha, min, max, size = False):
+def load_clean_phonetic_dictionary(alpha, min, max, training = False, size = False):
     # Setting min and max word length to simplify data set
 
     phonetic_dict = {}
@@ -112,10 +112,29 @@ def load_clean_phonetic_dictionary(alpha, min, max, size = False):
             phonetic_dict[word] = phonemes
 
     if size: # limit dataset to X number of words
-        phonetic_dict = {key:phonetic_dict[key]
-                         for key in random.sample(list(phonetic_dict.keys()), size)}
+        if training:
+            new_dict = {}
+            for letter in alpha:
+                for key in random.sample([k for k in phonetic_dict.keys() if k[0].lower() == letter], (size/26)+1):
+                    new_dict[key] = phonetic_dict[key]
+            return new_dict
+        else:
+            phonetic_dict = {key:phonetic_dict[key]
+                             for key in random.sample(list(phonetic_dict.keys()), size)}
+
     return phonetic_dict
 
+
+def limit_by_prefix(dict, prefix):
+    new_dict = {}
+    for key in dict:
+        if starts_with(key, prefix):
+            new_dict[key] = dict[key]
+    #new_dict[""] = ""
+    return new_dict
+
+def starts_with(word, prefix):
+    return word[:len(prefix)] == prefix.upper()
 # phonetic_dict = load_clean_phonetic_dictionary()
 # for key in phonetic_dict:
 #    print(key, phonetic_dict[key])
